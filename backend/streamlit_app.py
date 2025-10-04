@@ -30,7 +30,6 @@ st.markdown("""
 #MainMenu, footer {visibility: hidden;}
 
 /* Custom CSS to increase the size of the Expander header text only */
-/* This is a stable Streamlit workaround */
 .streamlit-expanderHeader {
     font-size: 1.15rem !important; /* Increase font size */
     font-weight: 600 !important;   /* Make it semi-bold */
@@ -40,51 +39,91 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+# ----------------------------------------------------------------------------------
+# --- HELPER FUNCTION: Callback for Quick Query Buttons (Sets State AND Updates Key) ---
+# ----------------------------------------------------------------------------------
+def set_query_value_and_key(query):
+    """Sets the query value in session state and updates the search input key."""
+    st.session_state['query_input_value'] = query
+    st.session_state['has_searched'] = False
+    
+    # CRITICAL FIX: Change the key of the text input. This forces Streamlit 
+    # to re-render the text input on the next rerun, guaranteeing it reads 
+    # the new value from session state. We use a simple counter for the key.
+    st.session_state['search_input_key_counter'] += 1 
+
+
+# ----------------------------------------------------------------------------------
+# --- Homepage Guide and Quick-Query Buttons ---
+# ----------------------------------------------------------------------------------
+def render_homepage_guide():
+    """Renders the main title, description, and clickable query suggestions."""
+    
+    st.title("RAG Startup Matchmaker 🚀")
+    
+    st.markdown(
+        """
+        Welcome! This application uses **Retrieval-Augmented Generation (RAG)**
+        to help you find potential co-founders or investors based on their profile data.
+        Enter a query describing the ideal match, and the Gemini LLM will summarize the results.
+        """
+    )
+    st.divider()
+
+    st.subheader("💡 Try a Quick Query:")
+    
+    # Define example queries
+    example_queries = [
+        "Fintech co-founder with blockchain experience in London",
+        "Who is the seed stage founder in Berlin working on e-commerce?",
+        "Find a healthtech engineer who uses AI/ML for optimization",
+    ]
+    
+    # Use columns to lay out the buttons horizontally
+    cols = st.columns(len(example_queries))
+    
+    for i, query in enumerate(example_queries):
+        # Pass the query to the callback function
+        cols[i].button(
+            query, 
+            key=f"quick_btn_{i}", 
+            use_container_width=True,
+            on_click=set_query_value_and_key, # Use the state update and key change callback
+            args=(query,) # Pass the query as an argument
+        )
+    st.divider()
+
+
 def render_result_card(match):
     """
     Renders a single match using ONLY native Streamlit components, 
     with maximized font sizes for better readability.
     """
     
-    # Use st.container(border=True) for the card structure.
     with st.container(border=True): 
         
-        # --- Header Section ---
         col1, col2 = st.columns([3, 1])
         with col1:
             st.header(match['founder_name'])
         with col2:
-            # Use st.subheader for Role to ensure a large font
             st.subheader(f":blue[{match['role']}]") 
 
-        # Company and Location - Use H5 equivalent (Markdown) for better size
         st.markdown(f"##### **{match['company']}** • _{match['location']}_")
         st.divider() 
         
-        # --- Match Reason (Highlighted) ---
-        # st.info is used for clean visual highlighting
         st.info(f"**🎯 Match Reason:** {match['match_explanation']}")
 
-        # --- Idea & About ---
-        
-        # IDEA Label: Use st.subheader for a prominent label size
         st.subheader("💡 Idea")
-        # IDEA Content: Use H4 equivalent for descriptive text size
         st.markdown(f"#### {match['full_details']['idea']}") 
         
         st.markdown("---") 
         
-        # ABOUT Label: Use st.subheader for a prominent label size
         st.subheader("👤 About")
-        # ABOUT Content: Use H4 equivalent for descriptive text size
         st.markdown(f"#### {match['full_details']['about']}")
 
-        # --- Expandable Full Details (Native Expander with custom styling via CSS) ---
-        # The CSS above ensures this header is large and prominent
         with st.expander("📋 Show Full Details"):
             colA, colB = st.columns(2)
             
-            # Metadata uses standard markdown (default size)
             with colA:
                 st.markdown(f"**Keywords:** {match['full_details']['keywords']}")
                 st.markdown(f"**Stage:** {match['full_details']['stage']}")
@@ -95,51 +134,68 @@ def render_result_card(match):
             if match['full_details']['notes']:
                 st.success(f"**📝 Notes:** {match['full_details']['notes']}")
 
-    # Add a small gap between cards
-    st.markdown("##") # Use a small heading for a clean vertical spacing
+    st.markdown("##") 
 
 
 def main_streamlit_app():
     """Main function for the Streamlit application."""
 
-    # Header
-    st.title("RAG Startup Matchmaker 🚀")
-    st.markdown("Find the perfect founder match using natural language search.")
-    st.divider()
+    # 1. Initialization and Guide
+    render_homepage_guide()
 
-    # Check for initialization
     if not rag_service.is_initialized:
         st.error("⚠️ RAG Service initialization failed. Please check your configuration.")
         return
 
-    # Search interface
+    # 2. Initialize necessary state variables
+    if 'query_input_value' not in st.session_state:
+        st.session_state['query_input_value'] = ""
+    if 'search_input_key_counter' not in st.session_state:
+        st.session_state['search_input_key_counter'] = 0
+
+
+    # --- Search Interface ---
     col1, col2 = st.columns([5, 1])
     
     with col1:
+        # The text input's key is dynamic, forcing it to update on callback
         query = st.text_input(
             "Search",
+            value=st.session_state['query_input_value'], 
             placeholder="e.g., 'seed stage founder in AI/ML based in San Francisco'",
             label_visibility="collapsed",
-            key="search_input"
+            # CRITICAL FIX: The key changes when the button callback runs
+            key=f"search_input_{st.session_state['search_input_key_counter']}"
         )
     
     with col2:
         search_clicked = st.button("Search", use_container_width=True, type="primary")
 
-    # Handle search
-    if search_clicked and query:
-        with st.spinner("Searching..."):
+    # --- Handle Search Logic ---
+    
+    # 3. Determine if a search should run
+    # This logic remains robust: run if the button is clicked OR if the query value 
+    # is different from the last successfully searched query.
+    should_run_search = search_clicked or (st.session_state['query_input_value'] != st.session_state.get('last_query', '') and query)
+    
+    if should_run_search and query:
+        
+        # 4. Finalize the state and run the search
+        st.session_state['query_input_value'] = query 
+            
+        with st.spinner(f"Searching for **{query}**..."):
             try:
                 matches = rag_service.search(query)
                 st.session_state['matches'] = matches
                 st.session_state['has_searched'] = True
-                st.session_state['last_query'] = query
+                st.session_state['last_query'] = query 
                 st.session_state['error'] = None
             except Exception as e:
                 st.session_state['error'] = str(e)
                 st.session_state['matches'] = []
                 st.session_state['has_searched'] = True
     
+    # --- Display Results ---
     if st.session_state.get('error'):
         st.error(f"❌ **Error:** {st.session_state['error']}")
     
@@ -158,7 +214,7 @@ def main_streamlit_app():
         else:
             st.warning(f"⚠️ No matches found for \"{query_text}\"")
     else:
-        st.info("💡 Enter a search query above to find founder matches")
+        st.info("💡 Enter your detailed search query above or click a quick query to find founder matches.")
 
 
 if __name__ == "__main__":
