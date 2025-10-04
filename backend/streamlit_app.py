@@ -139,9 +139,6 @@ def main_streamlit_app():
                 st.session_state['error'] = str(e)
                 st.session_state['matches'] = []
                 st.session_state['has_searched'] = True
-
-    # Display results
-    st.markdown("<br>") 
     
     if st.session_state.get('error'):
         st.error(f"❌ **Error:** {st.session_state['error']}")

@@ -15,16 +15,18 @@ CHROMA_DB_DIR = 'data/chroma_db'
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
 # 2. Text Preparation
+# backend/indexing.py (The corrected part)
+
 def create_documents(df):
-    """Combines relevant columns into a single 'document' text for embedding."""
+    """Combines relevant columns into a single 'document' text for embedding and adds CRITICAL metadata."""
     documents = []
     for _, row in df.iterrows():
-        # Concatenate the most relevant fields for retrieval
+        # ... content concatenation remains the same ...
         content = (
             f"Founder: {row['founder_name']}. Role: {row['role']}. "
             f"Company: {row['company']}. Location: {row['location']}. "
             f"Idea: {row['idea']}. About: {row['about']}. "
-            f"Keywords: {row['keywords']}."
+            f"Keywords: {row['keywords']}. Stage: {row['stage']}." 
         )
         
         doc = Document(
@@ -32,11 +34,10 @@ def create_documents(df):
             metadata={
                 "id": row['id'],
                 "founder_name": row['founder_name'],
-                "role": row['role'],
-                "company": row['company'],
+                # ... (other keys)
                 "location": row['location'],
-                # Store which fields were used to create provenance later
-                "search_fields": f"idea, about, keywords, role, company, location", 
+                "stage": row['stage'], # <--- THIS KEY IS ESSENTIAL FOR FILTERING
+                "search_fields": f"idea, about, keywords, role, company, location, stage", 
             }
         )
         documents.append(doc)
