@@ -1,144 +1,174 @@
-# streamlit_app.py
+# streamlit_app.py - Final Streamlit-Native Version with Maximized Readability
 import streamlit as st
-import pandas as pd
 import sys
 import os
 
+# --- PATH SETUP (Keep as is) ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
-# Add the current directory (which contains llm_service.py) to the Python path
 if current_dir not in sys.path:
     sys.path.append(current_dir)
-    print(f"Added {current_dir} to sys.path for import.")
-    
-# Attempt the import with the modified path
 try:
-    # This assumes llm_service.py is in the same directory as streamlit_app.py
     from llm_service import rag_service, RAGService  
-except ImportError as e:
-    # If it still fails, check a common subdirectory structure
+except ImportError:
     try:
-        sys.path.append(os.path.join(current_dir, 'src'))
-        from backend.llm_service import rag_service, RAGService
-    except ImportError:
+        sys.path.append(os.path.join(current_dir, 'backend'))
+        from llm_service import rag_service, RAGService
+    except ImportError as e:
         st.error(f"Could not find RAGService. Please ensure llm_service.py is accessible. Details: {e}")
         st.stop()
     
-# --- Streamlit UI Components ---
+# --- Streamlit Configuration and Global Styling ---
+st.set_page_config(
+    page_title="RAG Startup Matchmaker 🚀",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Hide footer and main menu for a clean look
+st.markdown("""
+<style>
+#MainMenu, footer {visibility: hidden;}
+
+/* Custom CSS to increase the size of the Expander header text only */
+/* This is a stable Streamlit workaround */
+.streamlit-expanderHeader {
+    font-size: 1.15rem !important; /* Increase font size */
+    font-weight: 600 !important;   /* Make it semi-bold */
+    color: #2563eb !important;     /* Apply blue color */
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 def render_result_card(match):
-    """Renders a single match using Streamlit columns and containers."""
+    """
+    Renders a single match using ONLY native Streamlit components, 
+    with maximized font sizes for better readability.
+    """
     
-    st.markdown(
-        f"""
-        <div style="background-color: #ffffff; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-left: 5px solid #3b82f6;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <h3 style="color: #1e3a8a; margin: 0; font-size: 1.5rem; font-weight: 800;">
-                    {match['founder_name']}
-                </h3>
-                <span style="background-color: #8b5cf6; color: white; padding: 4px 12px; border-radius: 9999px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    {match['role']}
-                </span>
-            </div>
+    # Use st.container(border=True) for the card structure.
+    with st.container(border=True): 
+        
+        # --- Header Section ---
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.header(match['founder_name'])
+        with col2:
+            # Use st.subheader for Role to ensure a large font
+            st.subheader(f":blue[{match['role']}]") 
+
+        # Company and Location - Use H5 equivalent (Markdown) for better size
+        st.markdown(f"##### **{match['company']}** • _{match['location']}_")
+        st.divider() 
+        
+        # --- Match Reason (Highlighted) ---
+        # st.info is used for clean visual highlighting
+        st.info(f"**🎯 Match Reason:** {match['match_explanation']}")
+
+        # --- Idea & About ---
+        
+        # IDEA Label: Use st.subheader for a prominent label size
+        st.subheader("💡 Idea")
+        # IDEA Content: Use H4 equivalent for descriptive text size
+        st.markdown(f"#### {match['full_details']['idea']}") 
+        
+        st.markdown("---") 
+        
+        # ABOUT Label: Use st.subheader for a prominent label size
+        st.subheader("👤 About")
+        # ABOUT Content: Use H4 equivalent for descriptive text size
+        st.markdown(f"#### {match['full_details']['about']}")
+
+        # --- Expandable Full Details (Native Expander with custom styling via CSS) ---
+        # The CSS above ensures this header is large and prominent
+        with st.expander("📋 Show Full Details"):
+            colA, colB = st.columns(2)
             
-            <p style="color: #4b5563; margin-top: 5px; font-size: 1rem;">
-                <strong>{match['company']}</strong> in {match['location']}
-            </p>
-            
-            <div style="background-color: #f0f9ff; padding: 12px; border-radius: 8px; margin: 15px 0;">
-                <strong style="color: #1d4ed8;">💡 Match Explanation:</strong> 
-                <span style="font-style: italic; color: #374151;">{match['match_explanation']}</span>
-            </div>
-            
-            <details>
-                <summary style="font-weight: bold; color: #1e3a8a; cursor: pointer; margin-top: 10px; padding: 5px 0;">
-                    View Full Profile Details
-                </summary>
-                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e5e7eb; font-size: 0.9rem;">
-                    <p><strong>Stage:</strong> <span style="color:#059669; font-weight:600;">{match['full_details']['stage']}</span></p>
-                    <p><strong>Idea:</strong> {match['full_details']['idea']}</p>
-                    <p><strong>Bio:</strong> {match['full_details']['about']}</p>
-                    <p><strong>Keywords:</strong> {match['full_details']['keywords']}</p>
-                    <p><strong>LinkedIn:</strong> <a href="{match['full_details']['linked_in']}" target="_blank" style="color: #3b82f6;">View Profile</a></p>
-                    {match['full_details']['notes'] and f"<p style='color: #ef4444; font-style: italic;'><strong>Notes:</strong> {match['full_details']['notes']}</p>"}
-                </div>
-            </details>
-            
-            <p style="text-align: right; color: #9ca3af; font-size: 0.75rem; margin-top: 10px;">
-                Matched on: {match['provenance']['matched_on_fields']} | ID: {match['id'][:8]}...
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+            # Metadata uses standard markdown (default size)
+            with colA:
+                st.markdown(f"**Keywords:** {match['full_details']['keywords']}")
+                st.markdown(f"**Stage:** {match['full_details']['stage']}")
+                
+            with colB:
+                st.markdown(f"[🔗 LinkedIn Profile]({match['full_details']['linked_in']})")
+                
+            if match['full_details']['notes']:
+                st.success(f"**📝 Notes:** {match['full_details']['notes']}")
+
+    # Add a small gap between cards
+    st.markdown("##") # Use a small heading for a clean vertical spacing
 
 
 def main_streamlit_app():
     """Main function for the Streamlit application."""
-    st.set_page_config(
-        page_title="RAG Founder Matchmaker 🚀",
-        layout="wide",
-        initial_sidebar_state="collapsed"
-    )
 
-    st.title("RAG Founder Matchmaker 🚀")
-    st.markdown("Find the perfect founder match using **natural language search** in a database powered by **RAG** (Retrieval-Augmented Generation).")
-    st.markdown("---")
+    # Header
+    st.title("RAG Startup Matchmaker 🚀")
+    st.markdown("Find the perfect founder match using natural language search.")
+    st.divider()
 
-    # Check for initialization status
+    # Check for initialization
     if not rag_service.is_initialized:
-        st.error(
-            f"**RAG Service Initialization Failed!** Please check the following:\n\n"
-            f"1. **GEMINI_API_KEY** is set in `.streamlit/secrets.toml`.\n"
-            f"2. Data files (`data/people.sqlite`, `data/chroma_db`) exist. Run your setup script.\n"
-            f"3. Dependency conflicts in `requirements.txt` are resolved."
-        )
+        st.error("⚠️ RAG Service initialization failed. Please check your configuration.")
         return
 
-    # User Query Input
-    query = st.text_input(
-        "Enter your search criteria:",
-        placeholder="E.g., Find me a seed-stage founder with expertise in cleantech and robotics.",
-        key="founder_query"
-    )
+    # Search interface
+    col1, col2 = st.columns([5, 1])
+    
+    with col1:
+        query = st.text_input(
+            "Search",
+            placeholder="e.g., 'seed stage founder in AI/ML based in San Francisco'",
+            label_visibility="collapsed",
+            key="search_input"
+        )
+    
+    with col2:
+        search_clicked = st.button("Search", use_container_width=True, type="primary")
 
-    search_button = st.button("Find Matches", type="primary")
-
-    if search_button and query:
-        with st.spinner(f"Searching for matches for: **{query}**..."):
+    # Handle search
+    if search_clicked and query:
+        with st.spinner("Searching..."):
             try:
-                # Call the RAG service search method
                 matches = rag_service.search(query)
                 st.session_state['matches'] = matches
                 st.session_state['has_searched'] = True
                 st.session_state['last_query'] = query
-                
+                st.session_state['error'] = None
             except Exception as e:
-                st.error(f"Search Error: {e}")
+                st.session_state['error'] = str(e)
                 st.session_state['matches'] = []
                 st.session_state['has_searched'] = True
+
+    # Display results
+    st.markdown("<br>") 
     
-    # Display Results
-    if st.session_state.get('has_searched'):
+    if st.session_state.get('error'):
+        st.error(f"❌ **Error:** {st.session_state['error']}")
+    
+    elif st.session_state.get('has_searched'):
         matches = st.session_state.get('matches', [])
-        last_query = st.session_state.get('last_query', "")
+        query_text = st.session_state.get('last_query', '')
         
         if matches:
-            st.success(f"**Found {len(matches)} match(es) for '{last_query}'!**")
+            st.success(f"✅ **Found {len(matches)} match{'es' if len(matches) != 1 else ''} for \"{query_text}\"**")
             
-            # Use a container for the results
-            results_container = st.container()
-            with results_container:
-                for match in matches:
-                    render_result_card(match)
+            st.subheader(f"Top {len(matches)} Match{'es' if len(matches) != 1 else ''}")
+            st.divider()
+            
+            for match in matches:
+                render_result_card(match)
         else:
-            st.warning(f"No matches found for **'{last_query}'**. Please try a different query.")
-    
-    elif not st.session_state.get('has_searched'):
-        st.info("Type your query above and click 'Find Matches' to start searching.")
+            st.warning(f"⚠️ No matches found for \"{query_text}\"")
+    else:
+        st.info("💡 Enter a search query above to find founder matches")
+
 
 if __name__ == "__main__":
-    # Ensure RAGService is initialized
+    if 'has_searched' not in st.session_state:
+        st.session_state['has_searched'] = False
+    
     if rag_service:
         main_streamlit_app()
     else:
-        st.error("Failed to initialize RAG Service globally.")
+        st.error("Failed to initialize RAG Service")
