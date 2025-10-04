@@ -1,18 +1,23 @@
-// frontend/src/App.jsx
 import React, { useState, useCallback, useMemo } from 'react';
 
-// NOTE: The mockApiSearch function has been removed to switch to a real API call.
+// --- Component 1: DetailItem (Reusable UI for profile details) ---
+const DetailItem = ({ label, value, className = 'text-gray-800' }) => (
+    <p className="flex flex-col sm:flex-row sm:justify-between">
+        <strong className="text-gray-700 w-24">{label}:</strong> 
+        <span className={`flex-1 ${className}`}>{value}</span>
+    </p>
+);
 
-// --- Component 1: ResultCard (Individual Match) ---
+// --- Component 2: ResultCard (Individual Match) ---
 const ResultCard = ({ match }) => {
     const [showFullDetails, setShowFullDetails] = useState(false);
 
     return (
         <div className="bg-white p-6 mb-4 rounded-xl shadow-lg border border-gray-100 transition duration-300 hover:shadow-xl">
             <div className="match-summary">
-                <h3 className="text-xl font-extrabold text-blue-800 flex items-center mb-2">
+                <h3 className="text-xl font-extrabold text-blue-800 flex flex-wrap items-center mb-2">
                     {match.founder_name} 
-                    <span className="ml-3 px-3 py-1 text-xs font-semibold text-white bg-blue-500 rounded-full shadow-md">
+                    <span className="ml-3 mt-1 md:mt-0 px-3 py-1 text-xs font-semibold text-white bg-blue-500 rounded-full shadow-md">
                         {match.role}
                     </span>
                 </h3>
@@ -59,14 +64,7 @@ const ResultCard = ({ match }) => {
     );
 };
 
-const DetailItem = ({ label, value, className = 'text-gray-800' }) => (
-    <p className="flex flex-col sm:flex-row sm:justify-between">
-        <strong className="text-gray-700 w-24">{label}:</strong> 
-        <span className={`flex-1 ${className}`}>{value}</span>
-    </p>
-);
-
-// --- Component 2: Main App ---
+// --- Component 3: Main App ---
 const App = () => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
@@ -74,7 +72,7 @@ const App = () => {
     const [error, setError] = useState(null);
     const [hasSearched, setHasSearched] = useState(false);
 
-    // 1. Query box where reviewer types natural language.
+    // Function to handle the API search
     const handleSearch = useCallback(async (e) => {
         e.preventDefault();
         setHasSearched(true);
@@ -89,7 +87,7 @@ const App = () => {
         setResults([]);
         
         try {
-            // --- REAL API CALL to FastAPI backend ---
+            // NOTE: This call must point to your running FastAPI backend!
             const response = await fetch('http://127.0.0.1:8000/api/v1/search', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -97,27 +95,26 @@ const App = () => {
             });
 
             if (!response.ok) {
-                // Attempt to get text from the error body for better debugging
                 const errorText = await response.text();
-                throw new Error(`HTTP error! Status: ${response.status}. Server response snippet: ${errorText.substring(0, 100)}`);
+                throw new Error(`HTTP error! Status: ${response.status}. Response: ${errorText.substring(0, 100)}...`);
             }
 
             const data = await response.json();
             setResults(data.matches || []);
         } catch (err) {
             console.error("API Search Error:", err);
-            // Provide a helpful error message to the user
-            setError(`Failed to connect to backend API or process response. Ensure the FastAPI server is running at http://127.0.0.1:8000. Details: ${err.message}`);
+            // Inform the user about the likely cause (FastAPI not running)
+            setError(`Failed to connect to backend API or process response. Ensure the FastAPI server is running at http://127.0.0.1:8000. Error: ${err.message}`);
         } finally {
             setIsLoading(false);
         }
     }, [query]);
 
-    // Determine the status message to display
+    // Status message logic
     const StatusMessage = useMemo(() => {
         if (error) {
             return (
-                <p className="p-4 bg-red-100 text-red-700 rounded-lg font-medium shadow-md transition duration-300 transform scale-100">
+                <p className="p-4 bg-red-100 text-red-700 rounded-lg font-medium shadow-md transition duration-300">
                     <span className="font-bold">Error:</span> {error}
                 </p>
             );
@@ -126,6 +123,7 @@ const App = () => {
         if (isLoading) {
             return (
                 <div className="flex items-center justify-center p-4">
+                     {/* Tailwind-based Spinner SVG */}
                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -158,7 +156,7 @@ const App = () => {
         <div className="min-h-screen bg-gray-50 p-4 sm:p-8 font-sans">
             <div className="max-w-4xl mx-auto">
                 <header className="text-center py-6 mb-8 border-b-4 border-blue-500 rounded-b-xl bg-white shadow-xl">
-                    <h1 className="4xl font-extrabold text-gray-900 tracking-tight">
+                    <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
                         RAG Founder Matchmaker 🚀
                     </h1>
                     <p className="text-gray-500 mt-2">Find the perfect founder match using natural language search.</p>

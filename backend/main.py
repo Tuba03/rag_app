@@ -2,7 +2,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from src.llm_service import rag_service # Import the initialized service
+from llm_service import rag_service
 from dotenv import load_dotenv
 
 # Load environment variables
