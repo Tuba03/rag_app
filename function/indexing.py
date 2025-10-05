@@ -1,4 +1,4 @@
-# backend/indexing.py
+# function/indexing.py
 import pandas as pd
 import sqlite_utils
 import os

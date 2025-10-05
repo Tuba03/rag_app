@@ -1,4 +1,4 @@
-# backend/src/data_generator.py
+# function/data_generator.py
 import uuid
 import random
 import csv
