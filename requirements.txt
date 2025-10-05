@@ -2,7 +2,7 @@ langchain-google-genai==2.0.5
 streamlit==1.28.1
 pandas==2.2.0
 langchain-community==0.3.15
-faiss-cpu==1.9.0
+# faiss-cpu==1.9.0
 pypdf==5.1.0
 python-dotenv==1.0.0
 google-generativeai==0.8.3
@@ -13,8 +13,5 @@ openai==1.12.0
 # If using sentence transformers:
 sentence-transformers==2.3.1
 
-# If using tiktoken:
-tiktoken==0.5.2
-
 # Common utilities:
-numpy==1.26.4
+numpy==1.24.4
