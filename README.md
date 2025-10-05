@@ -6,32 +6,51 @@ To build a system that finds and explains the top 3-5 best founder matches from 
 
 ## 2. Local Setup and Execution
 ### Prerequisites: 
-`Python 3.9+ and Git.`
+
+1.  Python 3.12
+2.  A Google Gemini API Key.
 
 ### Clone the Repository:
 git clone `https://github.com/Tuba03/rag_app/`
 
 ### Set Up Environment:
-`python -m venv venv`
+```bash
+python -m venv venv
 
-`source venv/bin/activate`  # On Windows: `venv\Scripts\activate`
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-`pip install -r requirements.txt`
+pip install -r requirements.txt
+```
 
 ### Generate Data and Index:
 Run the setup script, which automatically creates the directories, generates people.csv, stores metadata in people.sqlite, and builds the chroma_db vector store.
 `python setup_streamlit.py`
 
-### Configure API Key:
-Create a file at `.streamlit/secrets.toml` and add your `Google Gemini API key`:
-
-#.streamlit/secrets.toml
-
-`GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE"`
+**Configure API Key:**
+    Create the `.streamlit` directory and the `secrets.toml` file.
+    
+```bash
+    mkdir -p .streamlit
+    # Create the file and add your key
+    echo 'GEMINI_API_KEY = "your_key_here"' > .streamlit/secrets.toml
+```
+    
+**Generate and Index Data (The Build Step):**
+    Run the scripts to create the 700-row dataset and build the vector index.
+    
+ ```bash
+    # 1. Generate 700 rows of synthetic data/people.csv
+    python backend/data_generator.py
+    # 2. Embed the data into ChromaDB and store metadata in SQLite
+    python backend/indexing.py
+ ```
+* Wait for the indexing script to complete.
 
 ### Run the Streamlit App (Frontend):
 
 `streamlit run streamlit_app.py`
+    The app will open in your browser (usually `http://localhost:8501`).
+
 Run the FastAPI App (Backend - Optional/Separate Deployment):
 
 If running the FastAPI backend separately:
@@ -108,94 +127,9 @@ This ensures that only profiles matching the hard criteria are even considered b
 | Edge Case | 	Handling Strategy |
 | :---: | :--- |
 | Empty/Invalid Query |	Handled by a FastAPI/Streamlit check, returning a 400 error or an information message. |
-| Query with Hard Filters |	Handled by Pre-Retrieval Filtering in llm_service.py (stage/location regex extraction). If the filter is present, the vector search is constrained, ensuring high-precision results. |
+| Query with Hard Filters |	Handled by Pre-Retrieval Filtering in `llm_service.py` (stage/location regex extraction). If the filter is present, the vector search is constrained, ensuring high-precision results. |
 | Query with NO Matches |	If the vector store returns an empty set (e.g., after filtering), the function returns []. If the LLM receives context but ranks none as good, it is instructed to return []. |
-| LLM Hallucination/Bad Format |	The prompt forces a specific JSON array structure. The llm_service.py includes robust string stripping and a json.loads block with error handling to prevent server crashes from malformed LLM output. |
-| Quick Query/Input Reset |	The Streamlit app uses a state management callback (set_query_value_and_key) and a dynamic key for the text input to ensure button clicks correctly update the input box and trigger a new search. |
+| LLM Hallucination/Bad Format |	The prompt forces a specific JSON array structure. The `llm_service.py` includes robust string stripping and a json.loads block with error handling to prevent server crashes from malformed LLM output. |
+| Quick Query/Input Reset |	The Streamlit app uses a state management callback (`set_query_value_and_key`) and a dynamic key for the text input to ensure button clicks correctly update the input box and trigger a new search. |
 
-### E. Deployment and Authentication
-**Hosting Strategy:**
-
-I would host the application using a containerized approach on a platform like **Google Cloud Run** or **AWS Fargate**. The entire application (Streamlit UI) would be containerized into a single Docker image. This offers serverless container execution, autoscaling, and built-in load balancing. Cloud Run is ideal as it is simple to deploy and is cost-effective (pay-per-request). The internal data (`data/people.sqlite` and `data/chroma_db`) would be generated during the container build process, making the container self-contained.
-
-**Authentication and Security:**
-
-- **1. Auth Implementation:** I would implement **OAuth 2.0 (e.g., Auth0, Google Sign-In).**
-
-- A user would click "Login" in Streamlit.
-
-- Streamlit would redirect to the OAuth provider.**
-
-- Upon successful authentication, the provider redirects back to the Streamlit app with an **ID Token**.
-
-- A **session state** in Streamlit would be set using the token (or an internal session ID), and the app's RAG functionality would only run if this state is valid.
-
-**2. API Key Security:**
-
-- The `GEMINI_API_KEY` is loaded from a **secret manager** (e.g., AWS Secrets Manager, Google Secret Manager).
-
-- The hosting environment injects the key as an **environment variable** into the running container at runtime. The key never exists in the codebase, the Dockerfile, or the front-end code. The `RAGService._get_api_key()` method reads from the secure environment.
-
-**3. HTTPS:**
-
-- When using platforms like **Cloud Run** or **AWS Fargate** behind a Load Balancer/API Gateway, **HTTPS is automatically enforced**. The platform handles the SSL/TLS certificate management and termination, ensuring all traffic between the user and the application is encrypted.
-
-**4. Safe Re-indexing in Production:**
-Re-indexing (updating the dataset and RAG model) must be a zero-downtime operation.
-
-- **Process:** A separate, internal deployment pipeline would be used.
-
-1. The updated CSV data is created/uploaded.
-
-2. A new container image is built, running the `indexing.py` script as part of the build or a pre-start hook, which generates a new `chroma_db` and `people.sqlite`.
-
-3. The new container is deployed to Cloud Run/Fargate alongside the old one.
-
-4. Once the new container is healthy, the traffic routing is **swapped instantly** to the new version (blue/green deployment).
-
-5. The old, running container is drained and terminated. This ensures the RAG service is always available with the latest index.
-
-
-## Setup and Running Locally
-
-### Prerequisites
-
-1.  Python 3.9+
-2.  A Google Gemini API Key.
-
-### Steps
-
-1.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/Tuba03/rag_app/
-    ```
-
-2.  **Install Dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3.  **Configure API Key:**
-    Create the `.streamlit` directory and the `secrets.toml` file.
-    ```bash
-    mkdir -p .streamlit
-    # Create the file and add your key
-    echo 'GEMINI_API_KEY = "your_key_here"' > .streamlit/secrets.toml
-    ```
-
-4.  **Generate and Index Data (The Build Step):**
-    Run the scripts to create the 700-row dataset and build the vector index.
-    ```bash
-    # 1. Generate 700 rows of synthetic data/people.csv
-    python backend/data_generator.py
-    # 2. Embed the data into ChromaDB and store metadata in SQLite
-    python backend/indexing.py
-    ```
-    *Wait for the indexing script to complete.*
-
-5.  **Run the Streamlit App:**
-    ```bash
-    streamlit run streamlit_app.py
-    ```
-    The app will open in your browser (usually `http://localhost:8501`).
 
