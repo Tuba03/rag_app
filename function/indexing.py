@@ -1,4 +1,4 @@
-# function/indexing.py
+# indexing.py
 import pandas as pd
 import sqlite_utils
 import os
@@ -7,20 +7,22 @@ from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain.schema.document import Document
 import shutil # Used for deleting old directory
 
+# Determine base path for cross-file consistency (assuming script is run from project root)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # 1. Configuration
-CSV_PATH = 'data/people.csv'
-SQLITE_DB_PATH = 'data/people.sqlite'
-CHROMA_DB_DIR = 'data/chroma_db'
+CSV_PATH = os.path.join('data', 'people.csv')
+SQLITE_DB_PATH = os.path.join('data', 'people.sqlite')
+CHROMA_DB_DIR = os.path.join('data', 'chroma_db')
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+DATA_GENERATOR_PATH = 'data_generator.py' # Assuming it's in the same directory or project root
 
 # 2. Text Preparation
-# backend/indexing.py (The corrected part)
-
-def create_documents(df):
+def create_documents(df: pd.DataFrame) -> list[Document]:
     """Combines relevant columns into a single 'document' text for embedding and adds CRITICAL metadata."""
     documents = []
     for _, row in df.iterrows():
-        # ... content concatenation remains the same ...
+        # Combine searchable fields into the document content
         content = (
             f"Founder: {row['founder_name']}. Role: {row['role']}. "
             f"Company: {row['company']}. Location: {row['location']}. "
@@ -34,20 +36,26 @@ def create_documents(df):
                 "id": row['id'],
                 "founder_name": row['founder_name'],
                 "location": row['location'],
-                "stage": row['stage'], # <--- THIS KEY IS ESSENTIAL FOR FILTERING
-                "search_fields": f"idea, about, keywords, role, company, location, stage", 
+                "stage": row['stage'], 
+                "search_fields": "idea, about, keywords, location",
             }
         )
         documents.append(doc)
     return documents
 
-# 3. Indexing Function
-def index_data():
-    print("--- Starting Data Indexing ---")
-    
-    # Check if CSV exists
+def main_indexing():
     if not os.path.exists(CSV_PATH):
-        print(f"ERROR: CSV file not found at {CSV_PATH}. Please run 'python function/data_generator.py' first.")
+        # We assume data_generator is in the root and runnable from here
+        import subprocess
+        print(f"⚠️ CSV file not found at {CSV_PATH}. Attempting to run {DATA_GENERATOR_PATH}...")
+        try:
+            subprocess.run(["python", DATA_GENERATOR_PATH], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Failed to run data_generator.py: {e}")
+            return
+    
+    if not os.path.exists(CSV_PATH):
+        print(f"❌ ERROR: CSV file still not found at {CSV_PATH} after generation attempt.")
         return
 
     # --- Part A: Load Data and Create SQLite DB for Metadata/Provenance ---
@@ -80,8 +88,7 @@ def index_data():
         persist_directory=CHROMA_DB_DIR
     )
     vectorstore.persist()
-    print(f"ChromaDB index created and saved to {CHROMA_DB_DIR}")
-    print("--- Data Indexing Complete ---")
+    print(f"✅ ChromaDB index created and saved to {CHROMA_DB_DIR}")
 
 if __name__ == "__main__":
-    index_data()
+    main_indexing()

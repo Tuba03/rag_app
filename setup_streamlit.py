@@ -3,11 +3,13 @@ import os
 import shutil
 import subprocess
 import sys
+import argparse
 
 def create_directory_structure():
     """Create necessary directories."""
     directories = [
         'data',
+        'backend',
         '.streamlit'
     ]
     
@@ -17,7 +19,11 @@ def create_directory_structure():
 
 def create_secrets_template():
     """Create secrets template file."""
-    secrets_content = '''# .streamlit/secrets.toml'''
+    secrets_content = '''# .streamlit/secrets.toml
+# This file is used by Streamlit Cloud to set environment variables securely.
+# In your code, load it using os.environ or st.secrets.
+GEMINI_API_KEY = "YOUR_API_KEY_HERE"
+'''
     
     secrets_path = '.streamlit/secrets.toml'
     if not os.path.exists(secrets_path):
@@ -27,68 +33,6 @@ def create_secrets_template():
     else:
         print(f"⚠️  Secrets file already exists: {secrets_path}")
 
-def check_and_generate_data():
-    """Check if data exists, generate if needed."""
-    data_files = [
-        'data/people.csv',
-        'data/people.sqlite',
-        'data/chroma_db'
-    ]
-    
-    missing_files = [f for f in data_files if not os.path.exists(f)]
-    
-    if missing_files:
-        print("⚠️  Missing data files. Generating now...")
-        
-        # Run data generator
-        if os.path.exists('data_generator.py'):
-            print("🔄 Running data_generator.py...")
-            subprocess.run([sys.executable, 'data_generator.py'])
-        elif os.path.exists('function/data_generator.py'):
-            print("🔄 Running function/data_generator.py...")
-            subprocess.run([sys.executable, 'function/data_generator.py'])
-        else:
-            print("❌ data_generator.py not found!")
-            return False
-        
-        # Run indexing
-        if os.path.exists('function/indexing.py'):
-            print("🔄 Running indexing.py...")
-            subprocess.run([sys.executable, 'indexing.py'])
-        elif os.path.exists('function/indexing.py'):
-            print("🔄 Running function/indexing.py...")
-            subprocess.run([sys.executable, 'function/indexing.py'])
-        else:
-            print("❌ indexing.py not found!")
-            return False
-    else:
-        print("✅ All data files exist")
-    
-    return True
-
-def install_streamlit_requirements():
-    """Install Streamlit requirements."""
-    requirements = [
-        "streamlit==1.28.1",
-        "pandas",
-        "langchain",
-        "langchain-community", 
-        "langchain-google-genai",
-        "chromadb",
-        "sentence-transformers",
-        "sqlite-utils",
-        "python-dotenv"
-    ]
-    
-    print("🔄 Installing Streamlit requirements...")
-    for req in requirements:
-        try:
-            subprocess.run([sys.executable, "-m", "pip", "install", req], 
-                         check=True, capture_output=True)
-            print(f"✅ Installed: {req}")
-        except subprocess.CalledProcessError:
-            print(f"⚠️  Failed to install: {req}")
-
 def create_gitignore():
     """Create .gitignore file."""
     gitignore_content = '''# Python
@@ -97,12 +41,15 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
-env/
 venv/
 .env
 
-# Streamlit
+# Streamlit/Data
 .streamlit/secrets.toml
+data/people.csv
+data/people.sqlite
+data/chroma_db/
+.st-secrets.toml
 
 # IDE
 .vscode/
@@ -135,20 +82,11 @@ def main():
     # Create gitignore
     create_gitignore()
     
-    # Install requirements
-    install_streamlit_requirements()
-    
-    # Check/generate data
-    if not check_and_generate_data():
-        print("❌ Data generation failed. Please fix and try again.")
-        return
-    
     print("\n🎉 Setup complete!")
     print("\n📝 Next steps:")
-    print("1. Add your GEMINI_API_KEY to .streamlit/secrets.toml")
-    print("2. Test locally: streamlit run streamlit_app.py")
-    print("3. Commit to GitHub and deploy on Streamlit Cloud")
-    print("\n🔗 Deployment guide: https://docs.streamlit.io/streamlit-community-cloud")
+    print("1. **Crucial:** Add your `GEMINI_API_KEY` to **`.streamlit/secrets.toml`** or your environment variables.")
+    print("2. Run the data pipeline locally (this generates the `data/` folder): `python indexing.py`")
+    print("3. Test locally: `streamlit run streamlit_app.py`")
 
 if __name__ == "__main__":
     main()
