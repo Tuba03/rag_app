@@ -3,46 +3,50 @@ import streamlit as st
 import sys
 import os
 import subprocess
+import time # Import time for a small pause after setup
 
-# --- PATH SETUP (Ensures modules can be imported) ---
-# Assuming 'backend' folder is one level up from this file's directory if the app is run from root.
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# Add the project root to path for module imports (e.g., from backend.llm_service)
-project_root = os.path.dirname(current_dir)
-if project_root not in sys.path:
-    sys.path.append(project_root)
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
+# --- PATH SETUP (Ensures module imports and subprocess calls are robust) ---
+# Set project root to the directory containing this file
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(APP_ROOT, 'data')
 
+# Add the project root to sys.path for module imports (e.g., from backend.llm_service)
+if APP_ROOT not in sys.path:
+    sys.path.append(APP_ROOT)
+    
 # --- Data Generation/Indexing Helper ---
-def ensure_rag_data_is_ready():
+def ensure_data_exists():
     """Checks for the ChromaDB index and runs the generation/indexing scripts if missing."""
-    chroma_db_path = os.path.join(current_dir, 'data', 'chroma_db')
+    chroma_db_path = os.path.join(DATA_DIR, 'chroma_db')
+    
     if not os.path.exists(chroma_db_path):
         st.info("🔎 **First-time setup:** Generating data and building vector index. This may take a minute.")
         
         try:
-            # 1. Generate data
             st.text("1/2 Running data_generator.py...")
-            subprocess.run([sys.executable, 'data_generator.py'], check=True, cwd=current_dir, capture_output=True, text=True)
             
-            # 2. Index data
+            # USE ABSOLUTE PATHS and cwd=APP_ROOT for robustness
+            data_generator_path = os.path.join(APP_ROOT, 'data_generator.py')
+            subprocess.run([sys.executable, data_generator_path], check=True, cwd=APP_ROOT, capture_output=True, text=True)
+
             st.text("2/2 Running indexing.py to build ChromaDB...")
-            subprocess.run([sys.executable, 'indexing.py'], check=True, cwd=current_dir, capture_output=True, text=True)
-            
+            indexing_path = os.path.join(APP_ROOT, 'indexing.py')
+            subprocess.run([sys.executable, indexing_path], check=True, cwd=APP_ROOT, capture_output=True, text=True)
+
             st.success("✅ Data and Vector Index are ready!")
+            time.sleep(1) # Wait briefly before rerunning
             st.rerun() # Rerun the script to load the newly created index
             
         except subprocess.CalledProcessError as e:
-            st.error(f"❌ **Data Setup Failed!** Please check `data_generator.py` and `indexing.py` for errors.")
-            st.exception(e)
+            st.error(f"❌ **Data Setup Failed!** Check console logs for errors in `data_generator.py` or `indexing.py`.")
+            st.exception(e.stdout + e.stderr)
             st.stop()
         except FileNotFoundError:
             st.error("❌ **Data Setup Failed!** Make sure `data_generator.py` and `indexing.py` are in the project root.")
             st.stop()
-    
+
 # Check and set up data pipeline before importing the service
-ensure_rag_data_is_ready()
+ensure_data_exists()
 
 # --- Import RAG Service (It will auto-load the index now) ---
 from backend.llm_service import rag_service, RAGService 
