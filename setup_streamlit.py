@@ -44,9 +44,9 @@ def check_and_generate_data():
         if os.path.exists('data_generator.py'):
             print("🔄 Running data_generator.py...")
             subprocess.run([sys.executable, 'data_generator.py'])
-        elif os.path.exists('src/data_generator.py'):
-            print("🔄 Running src/data_generator.py...")
-            subprocess.run([sys.executable, 'src/data_generator.py'])
+        elif os.path.exists('function/data_generator.py'):
+            print("🔄 Running function/data_generator.py...")
+            subprocess.run([sys.executable, 'function/data_generator.py'])
         else:
             print("❌ data_generator.py not found!")
             return False
@@ -56,8 +56,8 @@ def check_and_generate_data():
             print("🔄 Running indexing.py...")
             subprocess.run([sys.executable, 'indexing.py'])
         elif os.path.exists('src/indexing.py'):
-            print("🔄 Running src/indexing.py...")
-            subprocess.run([sys.executable, 'src/indexing.py'])
+            print("🔄 Running function/indexing.py...")
+            subprocess.run([sys.executable, 'function/indexing.py'])
         else:
             print("❌ indexing.py not found!")
             return False
