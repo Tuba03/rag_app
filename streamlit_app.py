@@ -100,7 +100,9 @@ def render_result_card(match):
     with maximized font sizes for better readability.
     """
     
-    with st.container(border=True): 
+    with st.container(): 
+        
+        col1, col2 = st.columns([3, 1])
         
         col1, col2 = st.columns([3, 1])
         with col1:
