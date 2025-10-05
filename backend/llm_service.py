@@ -42,7 +42,7 @@ class RAGService:
         "berlin": "Berlin, Germany",
     }
     
-    # NEW: Define available stages for extraction
+    # available stages for extraction
     STAGE_MAPPING = {
         "seed stage": "seed",
         "seed": "seed",
@@ -152,7 +152,7 @@ If no good matches exist, return: []
         prompt = ChatPromptTemplate.from_template(template)
         self.rag_chain = prompt | self.llm | StrOutputParser()
         
-    # NEW METHOD: Extracts the stage filter
+    # Extracts the stage filter
     def _extract_stage_filter(self, query: str) -> Optional[str]:
         """Extracts the stage filter from the query based on predefined keywords."""
         lower_query = query.lower()
@@ -307,5 +307,4 @@ If no good matches exist, return: []
             print(f"Search error: {e}")
             raise Exception(f"RAG search failed: {e}")
 
-# Global service instance
 rag_service = RAGService()

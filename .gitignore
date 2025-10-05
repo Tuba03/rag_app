@@ -1,36 +1,23 @@
-.env
-./streamlit_app/.streamlit/secrets.toml
-__pycache__
+.streamlit
+# Ignore Streamlit configuration and cache files
+.cache/
+.config/
+# Ignore Python cache files
+__pycache__/
 *.pyc
-*.pyo
-*.pyd
-*.sqlite
-*.db
-*.sqlite3
-*.log
+# Ignore virtual environment directories
+venv/
+env/
+# Ignore IDE specific files
+.vscode/
+.idea/
+# Ignore OS generated files
 .DS_Store
-node_modules
-dist
-build
-.env
-.vscode
-.idea
-*.egg-info
-.pytest_cache
-.coverage
-htmlcov
-.tox
-.pyre
-.mypy_cache
-.pytype
-.pyright
-.ipynb_checkpoints
-celerybeat-schedule
-instance
-.webassets-cache
-.scrapy
-.pytest_cache/
-.pytest_cache/*
-.pytest_cache/*/*
-.pytest_cache/*/*/*
-.pytest_cache/*/*/*/* 
+Thumbs.db
+# Ignore log files
+*.log
+# Ignore database files
+*.db
+
+# Ignore VSCode workspace settings
+.vscode/
