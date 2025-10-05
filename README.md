@@ -132,4 +132,7 @@ This ensures that only profiles matching the hard criteria are even considered b
 | LLM Hallucination/Bad Format |	The prompt forces a specific JSON array structure. The `llm_service.py` includes robust string stripping and a json.loads block with error handling to prevent server crashes from malformed LLM output. |
 | Quick Query/Input Reset |	The Streamlit app uses a state management callback (`set_query_value_and_key`) and a dynamic key for the text input to ensure button clicks correctly update the input box and trigger a new search. |
 
+### ScreenShot
+<img width="1440" height="900" alt="Screenshot 2025-10-05 at 4 55 57 PM" src="https://github.com/user-attachments/assets/639a9f4b-8fd2-45f1-9607-84c6208afb1d" />
+<img width="1440" height="900" alt="Screenshot 2025-10-05 at 4 56 50 PM" src="https://github.com/user-attachments/assets/fb37d294-8ad6-40cd-be72-ca02ee16d29c" />
 
