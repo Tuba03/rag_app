@@ -1,5 +1,5 @@
 # requirements.txt - Comprehensive list for both FastAPI backend and Streamlit frontend
-
+numpy==1.26.4
 # Web Frameworks
 fastapi>=0.111.0
 uvicorn>=0.30.1 # ASGI server for FastAPI
