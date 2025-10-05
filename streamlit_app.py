@@ -2,7 +2,7 @@
 import streamlit as st
 import sys
 import os
-
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 # --- PATH SETUP ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:

@@ -1,16 +1,8 @@
-# requirements.txt for Streamlit deployment
+langchain-google-genai==2.0.5
 streamlit==1.28.1
-pandas==2.1.3
-langchain==0.0.340
-langchain-community==0.0.1
-langchain-google-genai==0.0.5
-chromadb==0.4.18
-sentence-transformers==2.7.0
-sqlite-utils==3.35.2
+pandas==2.2.0
+langchain-community==0.3.15
+faiss-cpu==1.9.0
+pypdf==5.1.0
 python-dotenv==1.0.0
-
-# Web Frameworks
-fastapi>=0.111.0
-uvicorn>=0.30.1
-pydantic>=2.7.4
-Faker>=25.1.0
+google-generativeai==0.8.3
