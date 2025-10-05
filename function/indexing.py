@@ -2,27 +2,26 @@
 import pandas as pd
 import sqlite_utils
 import os
+# from langchain.text_splitter import CharacterTextSplitter # Not used, can be commented out
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain.schema.document import Document
-import shutil 
-import subprocess
-import sys
+import shutil # Used for deleting old directory
 
-# --- Configuration (Paths fixed for deployment) ---
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-CSV_PATH = os.path.join(CURRENT_DIR, 'data', 'people.csv')
-SQLITE_DB_PATH = os.path.join(CURRENT_DIR, 'data', 'people.sqlite')
-CHROMA_DB_DIR = os.path.join(CURRENT_DIR, 'data', 'chroma_db')
+# 1. Configuration
+CSV_PATH = 'data/people.csv'
+SQLITE_DB_PATH = 'data/people.sqlite'
+CHROMA_DB_DIR = 'data/chroma_db'
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
-DATA_GENERATOR_PATH = os.path.join(CURRENT_DIR, 'data_generator.py')
 
 # 2. Text Preparation
-def create_documents(df: pd.DataFrame) -> list[Document]:
+# function/indexing.py (The corrected part)
+
+def create_documents(df):
     """Combines relevant columns into a single 'document' text for embedding and adds CRITICAL metadata."""
     documents = []
     for _, row in df.iterrows():
-        # Combine searchable fields into the document content
+        # ... content concatenation remains the same ...
         content = (
             f"Founder: {row['founder_name']}. Role: {row['role']}. "
             f"Company: {row['company']}. Location: {row['location']}. "
@@ -35,28 +34,24 @@ def create_documents(df: pd.DataFrame) -> list[Document]:
             metadata={
                 "id": row['id'],
                 "founder_name": row['founder_name'],
+                # ... (other keys)
                 "location": row['location'],
-                "stage": row['stage'], 
-                "search_fields": "idea, about, keywords, location",
+                "stage": row['stage'], # <--- THIS KEY IS ESSENTIAL FOR FILTERING
+                "search_fields": f"idea, about, keywords, role, company, location, stage", 
             }
         )
         documents.append(doc)
     return documents
 
-def main_indexing():
-    if not os.path.exists(CSV_PATH):
-        print(f"⚠️ CSV file not found at {CSV_PATH}. Attempting to run data_generator.py...")
-        try:
-            # Use sys.executable and explicit path
-            subprocess.run([sys.executable, DATA_GENERATOR_PATH], check=True, cwd=CURRENT_DIR)
-        except subprocess.CalledProcessError as e:
-            print(f"❌ Failed to run data_generator.py: {e}")
-            return
+# 3. Indexing Function
+def index_data():
+    print("--- Starting Data Indexing ---")
     
+    # Check if CSV exists
     if not os.path.exists(CSV_PATH):
-        print(f"❌ ERROR: CSV file still not found at {CSV_PATH} after generation attempt.")
+        print(f"ERROR: CSV file not found at {CSV_PATH}. Please run 'python src/data_generator.py' first.")
         return
-    
+
     # --- Part A: Load Data and Create SQLite DB for Metadata/Provenance ---
     df = pd.read_csv(CSV_PATH)
     print(f"Loaded {len(df)} records from CSV.")
@@ -76,7 +71,7 @@ def main_indexing():
         shutil.rmtree(CHROMA_DB_DIR)
         print(f"Removed old ChromaDB directory: {CHROMA_DB_DIR}")
 
-    # Used the local Sentence Transformer model for embeddings (free!)
+    # Use the local Sentence Transformer model for embeddings (free!)
     embeddings = SentenceTransformerEmbeddings(model_name=EMBEDDING_MODEL_NAME)
     print(f"Loaded embedding model: {EMBEDDING_MODEL_NAME}")
     
@@ -87,7 +82,8 @@ def main_indexing():
         persist_directory=CHROMA_DB_DIR
     )
     vectorstore.persist()
-    print(f"✅ ChromaDB index created and saved to {CHROMA_DB_DIR}")
+    print(f"ChromaDB index created and saved to {CHROMA_DB_DIR}")
+    print("--- Data Indexing Complete ---")
 
 if __name__ == "__main__":
-    main_indexing()
+    index_data()

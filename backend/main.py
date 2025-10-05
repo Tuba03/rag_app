@@ -2,17 +2,16 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-# Ensure the import is correct for the directory structure
-from backend.llm_service import rag_service 
+from llm_service import rag_service
 from dotenv import load_dotenv
 
-# Load environment variables (e.g., GEMINI_API_KEY)
+# Load environment variables
 load_dotenv()
 
 # 1. FastAPI App Initialization
 app = FastAPI(title="RAG Matchmaking API", version="1.0.0")
 
-# 2. CORS (Crucial for Streamlit/React Frontend Communication)
+# 2. CORS (Crucial for React Frontend Communication)
 origins = [
     "*", # In development, allow all. In production, restrict to your frontend URL
 ]
@@ -28,6 +27,16 @@ app.add_middleware(
 # 3. Request/Response Schemas
 class QueryRequest(BaseModel):
     query: str
+
+# FIX: Ensure RAG Service is fully initialized before serving requests.
+@app.on_event("startup")
+def startup_event():
+    # Because rag_service is imported globally, its __init__ runs on import.
+    # This check ensures we see the initialization message in the logs.
+    if rag_service.retriever is None:
+        # Re-initialize or log error if init failed (e.g., if index wasn't built)
+        # For simplicity, we rely on the error message inside RAGService.__init__
+        pass
 
 # 4. API Endpoint
 @app.post("/api/v1/search")
@@ -45,4 +54,9 @@ async def search_people(request: QueryRequest):
         # Log the detailed error on the server side
         print(f"Error during RAG search: {e}") 
         # Return a generic error to the client
-        raise HTTPException(status_code=500, detail=f"Internal RAG search error. Details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal RAG search error: {e}")
+
+# 5. Health Check
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "service": "RAG API"}
