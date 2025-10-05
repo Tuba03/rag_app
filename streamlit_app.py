@@ -17,6 +17,26 @@ except ImportError:
         st.error(f"Could not find RAGService. Please ensure llm_service.py is accessible. Details: {e}")
         st.stop()
     
+
+# --- CRITICAL FIX: Session State Initialization (MUST run before any callbacks) ---
+def initialize_session_state():
+    """Initializes all necessary session state variables to prevent KeyErrors."""
+    # Ensure all keys used in the main app body or callbacks are present
+    if 'query_input_value' not in st.session_state:
+        st.session_state['query_input_value'] = ""
+    if 'search_input_key_counter' not in st.session_state:
+        st.session_state['search_input_key_counter'] = 0 
+    if 'has_searched' not in st.session_state:
+        st.session_state['has_searched'] = False
+    if 'last_query' not in st.session_state:
+        st.session_state['last_query'] = "" 
+    if 'matches' not in st.session_state:
+        st.session_state['matches'] = []
+    if 'error' not in st.session_state:
+        st.session_state['error'] = None
+
+initialize_session_state() # <--- CALL THE INITIALIZER IMMEDIATELY AT TOP LEVEL
+
 # --- Streamlit Configuration and Global Styling ---
 st.set_page_config(
     page_title="RAG Startup Matchmaker 🚀",
@@ -39,17 +59,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- HELPER FUNCTION: Callback for Quick Query Buttons (Sets State AND Updates Key) ---
 def set_query_value_and_key(query):
-    """Sets the query value in session state and updates the search input key."""
+    """Sets the query state and forces the text input to re-render with the new value."""
+    # This callback now safely accesses st.session_state because it was initialized above.
     st.session_state['query_input_value'] = query
     st.session_state['has_searched'] = False
     
-    # CRITICAL FIX: Change the key of the text input. This forces Streamlit 
-    # to re-render the text input on the next rerun, guaranteeing it reads 
-    # the new value from session state. Used a simple counter for the key.
+    # This line now safely increments the key
     st.session_state['search_input_key_counter'] += 1 
-
 
 # --- Homepage Guide and Quick-Query Buttons ---
 
@@ -140,24 +157,20 @@ def main_streamlit_app():
     # 1. Initialization and Guide
     render_homepage_guide()
 
-    if not rag_service.is_initialized:
-        st.error("⚠️ RAG Service initialization failed. Please check your configuration.")
+    # The is_initialized flag is a more robust way to check for RAG service status
+    # Assuming RAGService has an 'is_initialized' attribute updated in __init__
+    if not rag_service.is_initialized: 
+        st.error("⚠️ RAG Service initialization failed. This usually means the data (Chroma index) could not load. Please run 'python indexing.py' and check the console logs for the NumPy error.")
         return
 
-    # 2. Initialize necessary state variables
-    if 'query_input_value' not in st.session_state:
-        st.session_state['query_input_value'] = ""
-    if 'search_input_key_counter' not in st.session_state:
-        st.session_state['search_input_key_counter'] = 0
-
-
-    # --- Search Interface ---
+    # 2. Search Interface
     col1, col2 = st.columns([5, 1])
     
     with col1:
         # The text input's key is dynamic, forcing it to update on callback
         query = st.text_input(
             "Search",
+            # Ensure value is pulled from session state, which is now guaranteed to exist
             value=st.session_state['query_input_value'], 
             placeholder="e.g., 'seed stage founder in AI/ML based in San Francisco'",
             label_visibility="collapsed",
@@ -215,10 +228,5 @@ def main_streamlit_app():
 
 
 if __name__ == "__main__":
-    if 'has_searched' not in st.session_state:
-        st.session_state['has_searched'] = False
-    
-    if rag_service:
-        main_streamlit_app()
-    else:
-        st.error("Failed to initialize RAG Service")
+    # Initialization is handled above by initialize_session_state()
+    main_streamlit_app()
