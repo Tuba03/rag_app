@@ -1,4 +1,4 @@
-# requirements.txt - Comprehensive list for both FastAPI backend and Streamlit frontend
+# requirements.txt - Fixed for Python 3.13 compatibility
 
 # Web Frameworks
 fastapi>=0.111.0
@@ -17,7 +17,10 @@ langchain-google-genai>=1.0.0
 # Vector Store and Embeddings
 chromadb==0.4.18
 sentence-transformers==2.7.0 
-numpy==1.26.4 
+
+# CRITICAL FIX: Let NumPy auto-resolve to a Python 3.13 compatible version
+# Removed: numpy==1.26.4
+numpy>=1.26.4,<2.0.0
 
 # Data Handling & Utilities
 pandas>=2.1.3
