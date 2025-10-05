@@ -3,19 +3,15 @@ import streamlit as st
 import sys
 import os
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
-# --- PATH SETUP ---
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
+from backend.llm_service import rag_service, RAGService 
 try:
-    from backend.llm_service import rag_service, RAGService  
-except ImportError:
-    try:
-        sys.path.append(os.path.join(current_dir, 'backend'))
-        from backend.llm_service import rag_service, RAGService
-    except ImportError as e:
-        st.error(f"Could not find RAGService. Please ensure llm_service.py is accessible. Details: {e}")
-        st.stop()
+    from backend.llm_service import rag_service
+except ImportError as e:
+    # A simple fallback for local run if __init__.py is missed
+    import sys
+    import os
+    sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
+    from backend.llm_service import rag_service
     
 
 # --- CRITICAL FIX: Session State Initialization (MUST run before any callbacks) ---
