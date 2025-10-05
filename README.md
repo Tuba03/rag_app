@@ -1,4 +1,4 @@
-# [RAG Startup Matchmaker] (
+# [RAG Startup Matchmaker](https://founder-matchmaker.streamlit.app/)
 This project implements a Retrieval-Augmented Generation (RAG) system to match natural language queries (e.g., "Find a seed stage founder in London working on healthtech") against a database of synthetic founder profiles.
 
 ## 1. Goal
@@ -172,7 +172,7 @@ Re-indexing (updating the dataset and RAG model) must be a zero-downtime operati
 
 2.  **Install Dependencies:**
     ```bash
-    `pip install -r requirements.txt`
+    pip install -r requirements.txt
     ```
 
 3.  **Configure API Key:**
@@ -195,7 +195,7 @@ Re-indexing (updating the dataset and RAG model) must be a zero-downtime operati
 
 5.  **Run the Streamlit App:**
     ```bash
-    `streamlit run streamlit_app.py`
+    streamlit run streamlit_app.py
     ```
     The app will open in your browser (usually `http://localhost:8501`).
 
