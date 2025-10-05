@@ -201,19 +201,29 @@ If no good matches exist, return: []
             location_filter = self._parse_location(query)
             
             # 2. BUILD CHROMA WHERE CLAUSE
-            chroma_where_filter = {}
+            # Collect conditions into a list
+            conditions = []
             if stage_filter:
-                chroma_where_filter["stage"] = stage_filter
+                # Condition 1: documents where 'stage' equals the extracted stage
+                conditions.append({"stage": stage_filter})
             if location_filter:
-                chroma_where_filter["location"] = location_filter
+                # Condition 2: documents where 'location' equals the extracted location
+                conditions.append({"location": location_filter})
                 
-            print(f"ChromaDB WHERE clause: {chroma_where_filter}")
+            # 3. BUILD THE FINAL FILTER ARGUMENT (FIXED LOGIC)
+            chroma_filter_arg = None
+            if conditions:
+                if len(conditions) == 1:
+                    # If only one condition (stage OR location), use it directly
+                    chroma_filter_arg = conditions[0]
+                else:
+                    # FIX: If multiple conditions, explicitly use the $and operator
+                    # This resolves the error: "Expected where to have exactly one operator"
+                    chroma_filter_arg = {"$and": conditions}
+                
+            print(f"ChromaDB WHERE clause: {chroma_filter_arg}")
             
-            # Use 'filter' key if the where clause is not empty, otherwise None
-            chroma_filter_arg = chroma_where_filter if chroma_where_filter else None
-            
-            # 3. RETRIEVAL (Hybrid Search with Filter)
-            # This applies the filter (e.g., stage='seed') BEFORE the similarity search.
+            # 4. RETRIEVAL (Hybrid Search with Filter)
             retrieved_docs_and_scores = self.vectorstore.similarity_search_with_score(
                 query, 
                 k=TOP_K_DOCUMENTS,
@@ -221,6 +231,7 @@ If no good matches exist, return: []
             )
             
             print(f"Retrieved {len(retrieved_docs_and_scores)} documents after strict filtering.")
+            
 
             if not retrieved_docs_and_scores:
                 return []
