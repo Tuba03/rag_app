@@ -47,7 +47,7 @@ def index_data():
     
     # Check if CSV exists
     if not os.path.exists(CSV_PATH):
-        print(f"ERROR: CSV file not found at {CSV_PATH}. Please run 'python src/data_generator.py' first.")
+        print(f"ERROR: CSV file not found at {CSV_PATH}. Please run 'python function/data_generator.py' first.")
         return
 
     # --- Part A: Load Data and Create SQLite DB for Metadata/Provenance ---
