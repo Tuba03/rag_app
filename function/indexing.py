@@ -1,21 +1,21 @@
-# indexing.py
+# function/indexing.py
 import pandas as pd
 import sqlite_utils
 import os
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain.schema.document import Document
-import shutil # Used for deleting old directory
+import shutil 
+import subprocess
+import sys
 
-# Determine base path for cross-file consistency (assuming script is run from project root)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# 1. Configuration
-CSV_PATH = os.path.join('data', 'people.csv')
-SQLITE_DB_PATH = os.path.join('data', 'people.sqlite')
-CHROMA_DB_DIR = os.path.join('data', 'chroma_db')
+# --- Configuration (Paths fixed for deployment) ---
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+CSV_PATH = os.path.join(CURRENT_DIR, 'data', 'people.csv')
+SQLITE_DB_PATH = os.path.join(CURRENT_DIR, 'data', 'people.sqlite')
+CHROMA_DB_DIR = os.path.join(CURRENT_DIR, 'data', 'chroma_db')
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
-DATA_GENERATOR_PATH = 'data_generator.py' # Assuming it's in the same directory or project root
+DATA_GENERATOR_PATH = os.path.join(CURRENT_DIR, 'data_generator.py')
 
 # 2. Text Preparation
 def create_documents(df: pd.DataFrame) -> list[Document]:
@@ -45,11 +45,10 @@ def create_documents(df: pd.DataFrame) -> list[Document]:
 
 def main_indexing():
     if not os.path.exists(CSV_PATH):
-        # We assume data_generator is in the root and runnable from here
-        import subprocess
-        print(f"⚠️ CSV file not found at {CSV_PATH}. Attempting to run {DATA_GENERATOR_PATH}...")
+        print(f"⚠️ CSV file not found at {CSV_PATH}. Attempting to run data_generator.py...")
         try:
-            subprocess.run(["python", DATA_GENERATOR_PATH], check=True)
+            # Use sys.executable and explicit path
+            subprocess.run([sys.executable, DATA_GENERATOR_PATH], check=True, cwd=CURRENT_DIR)
         except subprocess.CalledProcessError as e:
             print(f"❌ Failed to run data_generator.py: {e}")
             return
@@ -57,7 +56,7 @@ def main_indexing():
     if not os.path.exists(CSV_PATH):
         print(f"❌ ERROR: CSV file still not found at {CSV_PATH} after generation attempt.")
         return
-
+    
     # --- Part A: Load Data and Create SQLite DB for Metadata/Provenance ---
     df = pd.read_csv(CSV_PATH)
     print(f"Loaded {len(df)} records from CSV.")
