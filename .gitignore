@@ -1,23 +1,8 @@
-.streamlit
-# Ignore Streamlit configuration and cache files
-.cache/
-.config/
-# Ignore Python cache files
+.streamlit/
 __pycache__/
-*.pyc
-# Ignore virtual environment directories
 venv/
 env/
-# Ignore IDE specific files
-.vscode/
-.idea/
-# Ignore OS generated files
+*.pyc
 .DS_Store
-Thumbs.db
-# Ignore log files
-*.log
-# Ignore database files
-*.db
-
-# Ignore VSCode workspace settings
+.idea/
 .vscode/
