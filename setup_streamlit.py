@@ -52,10 +52,10 @@ def check_and_generate_data():
             return False
         
         # Run indexing
-        if os.path.exists('indexing.py'):
+        if os.path.exists('function/indexing.py'):
             print("🔄 Running indexing.py...")
             subprocess.run([sys.executable, 'indexing.py'])
-        elif os.path.exists('src/indexing.py'):
+        elif os.path.exists('function/indexing.py'):
             print("🔄 Running function/indexing.py...")
             subprocess.run([sys.executable, 'function/indexing.py'])
         else:
