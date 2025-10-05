@@ -1,7 +1,18 @@
 # streamlit_app.py 
 import streamlit as st
 import sys
+
 import os
+import subprocess
+
+def ensure_data_exists():
+    if not os.path.exists('data/chroma_db'):
+        st.warning("Generating data for first-time deployment...")
+        subprocess.run(['python', 'data_generator.py'])
+        subprocess.run(['python', 'indexing.py'])
+        st.rerun()
+
+ensure_data_exists()
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from backend.llm_service import rag_service, RAGService 
 try:

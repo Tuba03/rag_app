@@ -1,9 +1,16 @@
-.streamlit/
+# Python
 __pycache__/
-venv/
-env/
 *.pyc
-.DS_Store
-.idea/
-.vscode/
+*.pyo
+venv/
+.env
 
+# Secrets (NEVER commit these!)
+.streamlit/secrets.toml
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
